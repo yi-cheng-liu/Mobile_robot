@@ -13,6 +13,7 @@ def readG2OFile2d(file_name):
             if values[0] == 'VERTEX_SE2':
                 poses_data = np.array(values[1:]).astype(float)
                 poses.append(poses_data)
+
             # 2. edges
             elif values[0] == 'EDGE_SE2':
                 edges_data = np.array(values[1:]).astype(float)
@@ -23,14 +24,20 @@ def readG2OFile2d(file_name):
 
 
 def batch_solution_2d(file):
+    # 1. read the data
     is3D = False
     graph, initial = gtsam.readG2o(file, is3D)
-    params = gtsam.GaussNewtonParams()
-    priorModel = gtsam.noiseModel.Diagonal.Variances(
-        gtsam.Point3(1e-6, 1e-6, 1e-8))
 
+    # 2. add a prior factor model to the graph
+    priorModel = gtsam.noiseModel.Diagonal.Variances(
+        np.array([1e-6, 1e-6, 1e-4]))
     graph.add(gtsam.PriorFactorPose2(0, gtsam.Pose2(), priorModel))
+
+    # 3. build the optimizer with Gauss-Newton method
+    params = gtsam.GaussNewtonParams()
     optimizer = gtsam.GaussNewtonOptimizer(graph, initial, params)
+
+    # 4. optimize the graph
     result = optimizer.optimize()
 
     return result
@@ -40,45 +47,42 @@ def incremental_solution_2d(poses, edges):
     # 1. Initialize iSAM
     params = gtsam.ISAM2Params()
     isam = gtsam.ISAM2(params)
-    graph = gtsam.NonlinearFactorGraph()
-    initial_estimate = gtsam.Values()
 
     # 2. incremental solution
-    for i in range(len(poses)):
-        print('i: ', i)
-        if poses[i, 0] == 0:
-            prior_noise = gtsam.noiseModel.Diagonal.Sigmas(
-                np.array([0.3, 0.3, 0.1]))
-            idx = int(poses[i, 0])
-            x = poses[i, 1]
-            y = poses[i, 2]
-            theta = poses[i, 3]
+    for pose in poses:
+        graph = gtsam.NonlinearFactorGraph()
+        initial_estimate = gtsam.Values()
+        # extract the x, y, theta data from the prestored pose
+        idp, x, y, theta = pose
+        if idp == 0:
+            # create the prior_noise and add to the graph
+            prior_noise = gtsam.noiseModel.Diagonal.Variances(
+                np.array([1e-6, 1e-6, 1e-4]))
             graph.add(gtsam.PriorFactorPose2(0, gtsam.Pose2(x, y, theta),
                                              prior_noise))
-            initial_estimate.insert(idx, gtsam.Pose2(x, y, theta))
+            initial_estimate.insert(int(idp), gtsam.Pose2(x, y, theta))
         else:
-            prev_pose = result.atPose2(i-1)
-            initial_estimate.insert(int(poses[i, 0]), prev_pose)
-            for j in range(len(edges)):
-                idx_e1 = int(edges[j, 0])
-                idx_e2 = int(edges[j, 1])
-                dx = edges[j, 2]
-                dy = edges[j, 3]
-                dtheta = edges[j, 4]
-                info = edges[j, 5:]
-                if edges[j, 1] == poses[i, 0]:
-                    info_matrix = np.array([[info[0], info[1], info[2]],
-                                            [info[1], info[3], info[4]],
-                                            [info[2], info[4], info[5]]])
+            # add the previously calcualted result add add to the subsequence idx
+            prev_pose = result.atPose2(int(idp-1))
+            initial_estimate.insert(int(idp), prev_pose)
+            for edge in edges:
+                # calcualte the information matrix
+                ide1, ide2, dx, dy, dtheta, info_0, info_1, info_2, info_3, info_4, info_5 = edge
+                info_matrix = np.array([[info_0, info_1, info_2],
+                                        [info_1, info_3, info_4],
+                                        [info_2, info_4, info_5]])
+                if ide2 == idp:
+                    # build the noise model with the information matrix
                     cov = np.linalg.inv(info_matrix)
                     model = gtsam.noiseModel.Gaussian.Covariance(cov)
-                    graph.add(gtsam.BetweenFactorPose2(idx_e1, idx_e2,
+                    # update the graph
+                    graph.add(gtsam.BetweenFactorPose2(int(ide1), int(ide2),
                                                        gtsam.Pose2(dx, dy,
                                                                    dtheta),
                                                        model))
+        # update the isam and result in every timestep
         isam.update(graph, initial_estimate)
         result = isam.calculateEstimate()
-        initial_estimate.clear()
     return result
 
 
@@ -86,9 +90,9 @@ def plot_batch(initial, optimized):
     plt.figure()
     plt.title("2D Batch Trajectory Optimization")
     plt.plot(initial[:, 0], initial[:, 1], linestyle="-",
-             label="Unoptimized Trajectory", color='blue')
+             label="Unoptimized Trajectory", color='blue', linewidth=1)
     plt.plot(optimized[:, 0], optimized[:, 1], linestyle="-",
-             label="Optimized Trajectory", color='red')
+             label="Optimized Trajectory", color='red', linewidth=1)
     plt.legend()
     plt.axis("equal")
     plt.savefig("2D_batch_trajectory_optimization.png")
@@ -98,15 +102,15 @@ def plot_incremental(initial, optimized):
     plt.figure()
     plt.title("2D Incremental Trajectory Optimization")
     plt.plot(initial[:, 0], initial[:, 1], linestyle="-",
-             label="Unoptimized Trajectory", color='blue')
+             label="Unoptimized Trajectory", color='blue', linewidth=1)
     plt.plot(optimized[:, 0], optimized[:, 1], linestyle="-",
-             label="Optimized Trajectory", color='red')
+             label="Optimized Trajectory", color='red', linewidth=1)
     plt.legend()
     plt.axis("equal")
     plt.savefig("2D_incremental_trajectory_optimization.png")
 
 
-def pose2array(result):
+def pose2_to_array(result):
     poses = [result.atPose2(i) for i in range(result.size())]
     return np.array([[pose.x(), pose.y(), pose.theta()] for pose in poses])
 
@@ -118,12 +122,11 @@ if __name__ == "__main__":
 
     # 2. batch solution
     result = batch_solution_2d(file)
-    optimized_poses_batch = pose2array(result)
+    optimized_poses_batch = pose2_to_array(result)
     initial_xy = poses[:, 1:3]
     plot_batch(initial_xy, optimized_poses_batch)
 
     # 3. incremental solution
     result = incremental_solution_2d(poses, edges)
-    optimized_poses_incremental = pose2array(result)
+    optimized_poses_incremental = pose2_to_array(result)
     plot_incremental(initial_xy, optimized_poses_incremental)
-
