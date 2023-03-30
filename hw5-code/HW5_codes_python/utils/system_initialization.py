@@ -16,14 +16,17 @@ def gfun(mu, u):
 
 def hfun(landmark_x, landmark_y, mu_pred):
     output = np.zeros(2)
+    # print("mu: ", mu_pred)
+    # print("landmark: ", landmark_x)
     output[0] = wrap2Pi(np.arctan2(landmark_y - mu_pred[1], landmark_x - mu_pred[0]) - mu_pred[2])
     output[1] = np.sqrt((landmark_y - mu_pred[1])**2 + (landmark_x - mu_pred[0])**2)
     return output
 
 def M(u, alphas):
-    output = np.array([[alphas[0]*u[0]**2+alphas[1]*u[1]**2,0,0], \
-        [0,alphas[2]*u[0]**2+alphas[3]*u[1]**2,0],\
-            [0,0,alphas[4]*u[0]**2+alphas[5]*u[1]**2]])
+    # print("alpha: ", alphas)
+    output = np.array([[alphas[0]*u[0]**2+alphas[1]*u[1]**2,                                  0,                                  0], \
+                       [                                  0,alphas[2]*u[0]**2+alphas[3]*u[1]**2,                                  0],\
+                       [                                  0,                                  0,alphas[4]*u[0]**2+alphas[5]*u[1]**2]])
     return output
 
 def system_initialization(alphas, beta):

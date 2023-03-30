@@ -46,8 +46,9 @@ class PF:
         # Hint: Use rng.standard_normal instead of np.random.randn.                   #
         #       It is statistically more random.                                      #
         ###############################################################################
-        pass
-
+        # Propagate particles through the motion model
+        for i in range(self.n):
+            self.particles[:, i] = self.gfun(self.particles[:, i], u) + self.M @ rng.standard_normal(3)
         ###############################################################################
         #                         END OF YOUR CODE                                    #
         ###############################################################################
@@ -63,7 +64,18 @@ class PF:
         # Hint: you can use landmark1.getPosition()[0] to get the x position of 1st   #
         #       landmark, and landmark1.getPosition()[1] to get its y position        #
         ###############################################################################
+        # Update particle weights based on measurements
+        for i in range(self.n):
+            # Compute expected measurement and measurement error
+            h = self.hfun(self.particles[:, i], landmarks)
+            dz = z - h
+            dz[1] = wrap2Pi(dz[1])
 
+            # Compute weight based on measurement error and covariance
+            p = multivariate_normal(mean=np.zeros(2), cov=self.Q)
+            weight = p.pdf(dz[3:5])  # Only use position measurements
+            self.particle_weight[i] *= weight
+        self.particle_weight /= np.sum(self.particle_weight)
         
         ###############################################################################
         #                         END OF YOUR CODE                                    #
