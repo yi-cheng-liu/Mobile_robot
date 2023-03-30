@@ -86,7 +86,7 @@ class UKF:
 
         Z_all = np.zeros((4, 2*self.n + 1))
         z_hat = np.zeros((4, 1))
-        S = np.zeros((4, 4))
+        S = np.zeros((4, 4)) 
         P_xz = np.zeros((3, 4))
 
         for i in range(2 * self.n + 1):
