@@ -14,7 +14,6 @@ class EKF:
         # Inputs:
         #   system: system and noise models
         #   init:   initial state mean and covariance
-<<<<<<< HEAD
         self.gfun = system.gfun    # motion model
         self.hfun = system.hfun    # measurement model
         self.Gfun = init.Gfun      # Jocabian of motion model
@@ -22,8 +21,7 @@ class EKF:
         self.Hfun = init.Hfun      # Jocabian of measurement model
         self.M = system.M          # motion noise covariance
         self.Q = system.Q          # measurement noise covariance
-        print("M: ", type(self.M))
-=======
+
         self.gfun = system.gfun   # motion model
         self.hfun = system.hfun   # measurement model
         self.Gfun = init.Gfun     # Jocabian of motion model
@@ -32,7 +30,6 @@ class EKF:
         self.M = system.M         # motion noise covariance
         self.Q = system.Q         # measurement noise covariance
 
->>>>>>> 2fa2793130ca51fc69e535b0580c2dca3810b0df
         self.state_ = RobotState()
 
         # init state
@@ -56,19 +53,17 @@ class EKF:
         # 1. State prediction
         X_pred = self.gfun(X, u)
 
-<<<<<<< HEAD
         # 2. Covariance prediction with mean and input
         G_t = self.Gfun(X, u)
         V_t = self.Vfun(X, u)
 
         P_pred = G_t @ P @ G_t.T + V_t @ self.M(u) @ V_t.T
-=======
+
         # 2. Covariance prediction
         G_t = self.Gfun(X, u)
         V_t = self.Vfun(X, u)
         P_pred = np.dot(np.dot(G_t, P), G_t.T) + np.dot(np.dot(V_t, self.M), V_t.T)
 
->>>>>>> 2fa2793130ca51fc69e535b0580c2dca3810b0df
 
         ###############################################################################
         #                         END OF YOUR CODE                                    #
@@ -96,11 +91,10 @@ class EKF:
         # Hint: you can use landmark1.getPosition()[0] to get the x position of 1st   #
         #       landmark, and landmark1.getPosition()[1] to get its y position        #
         ###############################################################################
-<<<<<<< HEAD
         
         landmark_x1, landmark_y1 = landmark1.getPosition()[0], landmark1.getPosition()[1]
         landmark_x2, landmark_y2 = landmark2.getPosition()[0], landmark2.getPosition()[1]
-=======
+
         # Correction step
 
         # Measurement prediction
@@ -123,7 +117,6 @@ class EKF:
 
         # Covariance update
         P = np.dot((np.eye(3) - np.dot(K, H_t)), P_predict)
->>>>>>> 2fa2793130ca51fc69e535b0580c2dca3810b0df
 
         # Predicted mean
         z_hat1 = self.hfun(landmark_x1, landmark_y1, X_predict)
