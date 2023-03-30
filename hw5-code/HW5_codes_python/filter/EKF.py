@@ -92,6 +92,7 @@ class EKF:
         #       landmark, and landmark1.getPosition()[1] to get its y position        #
         ###############################################################################
         
+        # Two landmarks
         landmark_x1, landmark_y1 = landmark1.getPosition()[0], landmark1.getPosition()[1]
         landmark_x2, landmark_y2 = landmark2.getPosition()[0], landmark2.getPosition()[1]
 

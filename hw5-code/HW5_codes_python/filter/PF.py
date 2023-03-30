@@ -48,7 +48,7 @@ class PF:
         ###############################################################################
         # Propagate particles through the motion model
         for i in range(self.n):
-            self.particles[:, i] = self.gfun(self.particles[:, i], u) + self.M @ rng.standard_normal(3)
+            self.particles[:, i] = self.gfun(self.particles[:, i], u + np.sqrt(self.M(u)) @ rng.standard_normal(3))
         ###############################################################################
         #                         END OF YOUR CODE                                    #
         ###############################################################################
@@ -64,18 +64,31 @@ class PF:
         # Hint: you can use landmark1.getPosition()[0] to get the x position of 1st   #
         #       landmark, and landmark1.getPosition()[1] to get its y position        #
         ###############################################################################
+
+        # Two landmarks
+        landmark1_x, landmark1_y = landmark1.getPosition()[0], landmark1.getPosition()[1]
+        landmark2_x, landmark2_y = landmark2.getPosition()[0], landmark2.getPosition()[1]
+
         # Update particle weights based on measurements
         for i in range(self.n):
-            # Compute expected measurement and measurement error
-            h = self.hfun(self.particles[:, i], landmarks)
-            dz = z - h
-            dz[1] = wrap2Pi(dz[1])
+            # Predicted measurement
+            z_hat1 = self.hfun(landmark1_x, landmark1_y, self.particles[:, i])
+            z_hat2 = self.hfun(landmark2_x, landmark2_y, self.particles[:, i])
 
-            # Compute weight based on measurement error and covariance
-            p = multivariate_normal(mean=np.zeros(2), cov=self.Q)
-            weight = p.pdf(dz[3:5])  # Only use position measurements
-            self.particle_weight[i] *= weight
+            prob1 = multivariate_normal.pdf(z[ :2], mean=z_hat1, cov=self.Q)
+            prob2 = multivariate_normal.pdf(z[3:5], mean=z_hat2, cov=self.Q)
+
+            self.particle_weight[i] *= prob1 * prob2
+        
+        # Normalize the importance weight
         self.particle_weight /= np.sum(self.particle_weight)
+
+        # Measure the degeneracy using the effective sample size (1 < neff < n)
+        neff = 1 / np.sum(self.particle_weight**2)
+        
+        # Use resample algorithm with higher weights (n/3 is the resample threshold)
+        if neff < self.n / 3:
+            self.resample()
         
         ###############################################################################
         #                         END OF YOUR CODE                                    #

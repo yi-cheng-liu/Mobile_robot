@@ -15,9 +15,13 @@ def gfun(mu, u):
     return output
 
 def hfun(landmark_x, landmark_y, mu_pred):
+    '''
+    input: landmark_x
+           landmark_y
+           mu_pred - robot position [robot_x, robot_y] (2, )
+    output: [angle, distance] (2, )
+    '''
     output = np.zeros(2)
-    # print("mu: ", mu_pred)
-    # print("landmark: ", landmark_x)
     output[0] = wrap2Pi(np.arctan2(landmark_y - mu_pred[1], landmark_x - mu_pred[0]) - mu_pred[2])
     output[1] = np.sqrt((landmark_y - mu_pred[1])**2 + (landmark_x - mu_pred[0])**2)
     return output
