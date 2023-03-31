@@ -106,7 +106,7 @@ class UKF:
         QQ = block_diag(self.Q, self.Q)    # two measurement noise covariance
         S = ((Z_all - z_hat) @ np.diag(self.w) @ (Z_all - z_hat).T) + QQ
 
-        # State and measurement cross 
+        # State and measurement cross covariance
         P_xz = (self.F - X_predict) @ np.diag(self.w) @ (Z_all - z_hat).T
 
         # Kalman gain
