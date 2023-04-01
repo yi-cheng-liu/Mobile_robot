@@ -1,4 +1,3 @@
-
 from statistics import mean
 from scipy.linalg import block_diag
 from copy import deepcopy, copy
